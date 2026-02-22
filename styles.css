@@ -1,44 +1,130 @@
+/* Basislayout */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #f5f5f5;
     margin: 0;
     padding: 0;
+    color: #222;
 }
 
 .container {
-    max-width: 900px;
-    margin: 20px auto;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+/* Header & Disclaimer */
+
+.header h1 {
+    margin: 0 0 10px;
+    font-size: 1.8rem;
+}
+
+.badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    border-radius: 999px;
+    background: #eee;
+    color: #555;
+}
+
+.disclaimer {
+    background: #fff;
+    border-left: 4px solid #ffcc00;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 0 6px rgba(0,0,0,.04);
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.disclaimer ul {
+    padding-left: 20px;
+    margin: 6px 0 6px;
+}
+
+.disclaimer-note {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Fragebogen */
+
+.questionnaire {
     background: #ffffff;
-    padding: 20px 25px;
+    padding: 16px 18px;
     border-radius: 6px;
     box-shadow: 0 0 10px rgba(0,0,0,.05);
 }
 
-h1, h2 {
-    margin-top: 0;
+.topic-heading {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 1.25rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
 }
 
 .question {
-    margin-bottom: 15px;
+    margin-bottom: 14px;
     padding: 10px 12px;
     border-left: 3px solid #ddd;
     background: #fafafa;
+    border-radius: 4px;
 }
 
-.answers label {
-    display: inline-block;
-    margin-right: 15px;
+.question-text {
+    margin: 0 0 8px;
+}
+
+.answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-bottom: 4px;
+}
+
+.answer-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.95rem;
+}
+
+.answer-option input[type="radio"] {
+    transform: scale(1.1);
+}
+
+.skip-option {
+    opacity: 0.8;
 }
 
 .important {
     display: block;
-    margin-top: 5px;
-    font-size: 0.9em;
+    margin-top: 4px;
+    font-size: 0.9rem;
 }
 
+.important input[type="checkbox"] {
+    transform: scale(1.1);
+    margin-right: 4px;
+}
+
+/* Button */
+
 .submit-btn {
-    margin-top: 20px;
-    padding: 10px 20px;
+    margin-top: 18px;
+    padding: 10px 22px;
     font-size: 1rem;
     background: #0074d9;
     color: #fff;
@@ -47,20 +133,38 @@ h1, h2 {
     cursor: pointer;
 }
 
-.submit-btn:hover {
+.submit-btn:hover,
+.submit-btn:focus-visible {
     background: #005bb5;
+}
+
+/* Ergebnisse */
+
+.results {
+    background: #ffffff;
+    padding: 16px 18px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,.05);
+}
+
+.results-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 10px;
 }
 
 .results-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    min-width: 480px;
 }
 
 .results-table th,
 .results-table td {
     padding: 8px;
     border-bottom: 1px solid #ddd;
+    text-align: left;
+    font-size: 0.95rem;
 }
 
 .bar-wrapper {
@@ -74,4 +178,81 @@ h1, h2 {
 .bar {
     background: #2ecc40;
     height: 100%;
+    transition: width 0.4s ease;
+}
+
+.percent-label {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.results-note {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #0074d9;
+    text-decoration: none;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+    text-decoration: underline;
+}
+
+/* Footer */
+
+.footer {
+    margin-top: 18px;
+    font-size: 0.85rem;
+    color: #777;
+    text-align: center;
+}
+
+/* Responsive Anpassungen */
+
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .questionnaire,
+    .results {
+        padding: 12px 12px;
+    }
+
+    .answers {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .answer-option {
+        width: 100%;
+    }
+
+    .topic-heading {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    .header h1 {
+        font-size: 1.3rem;
+    }
+
+    .disclaimer {
+        font-size: 0.9rem;
+    }
+
+    .results-table {
+        min-width: 420px;
+    }
 }
