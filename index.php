@@ -1,4 +1,5 @@
 <?php
+
 // index.php
 $questions  = require __DIR__ . '/questions.php';
 $candidates = require __DIR__ . '/candidates.php';
@@ -72,8 +73,9 @@ $results = $isPost ? calculate_scores($questions, $candidates, $_POST) : null;
 <head>
     <meta charset="UTF-8">
     <title>Passau Wahl-O-Mat (privat, inoffiziell)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="container">
@@ -185,7 +187,94 @@ $results = $isPost ? calculate_scores($questions, $candidates, $_POST) : null;
         <p>
             Dieses Projekt ist privat und inoffiziell. Keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität. Angaben zum Impressum sind unter <a href="https://github.com/ThomasKujawa/passau-ob-wahlomat/" target="_blank">https://github.com/</a> nachzulesen.
         </p>
+        <button onclick="downloadPDF()">📄 Ergebnis als PDF herunterladen</button>
     </footer>
 </div>
+<script>
+// Fragen als JavaScript-Array verfügbar machen
+const questions = <?php echo json_encode($questions); ?>;
+
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Titel
+    doc.setFontSize(22);
+    doc.text("Meine Wahlempfehlung", 20, 25);
+    doc.text("Passau OB-Wahl 2026", 20, 38);
+    
+    // Datum
+    doc.setFontSize(10);
+    doc.text("Erstellt: " + new Date().toLocaleDateString('de-DE'), 20, 50);
+    
+    // ❌ ECHTE ANTWORTEN aus Formular + Fragen-Array
+    const answers = [];
+    const answerInputs = document.querySelectorAll('input[type="radio"]:checked, select[name^="antwort"]');
+    
+    answerInputs.forEach(input => {
+        const questionId = input.name.replace('antwort_', '').replace('antwort', '');
+        const question = questions.find(q => q.id === questionId);
+        
+        if (question) {
+            answers.push({
+                id: question.id,
+                topic: question.topic,
+                text: question.text.substring(0, 80) + '...',
+                answer: input.value // "ja", "nein", "neutral"
+            });
+        }
+    });
+    
+    // Antworten schreiben
+    let yPos = 75;
+    doc.setFontSize(16);
+    doc.text(`Meine Antworten (${answers.length}/${questions.length} Fragen):`, 20, yPos);
+    yPos += 15;
+    
+    answers.forEach((answer, index) => {
+        // Thema (kursiv)
+        doc.setFont(undefined, 'italic');
+        doc.setFontSize(10);
+        doc.text(answer.topic, 20, yPos);
+        doc.setFont(undefined, 'normal'); // Normal zurück
+        
+        // Frage + Antwort
+        doc.setFontSize(11);
+        doc.text(`${index + 1}. ${answer.text}`, 20, yPos + 6);
+        doc.setFontSize(12);
+        doc.text(`   → ${translateAnswer(answer.answer)}`, 20, yPos + 14);
+        
+        yPos += 28;
+        
+        // Neue Seite?
+        if (yPos > 260) {
+            doc.addPage();
+            yPos = 25;
+        }
+    });
+    
+    // Empfehlung (Platzhalter - später echte Logik)
+    doc.setFontSize(18);
+    doc.text("🎯 Empfohlener Kandidat:", 20, yPos + 10);
+    doc.setFontSize(20);
+    doc.text("Noch nicht berechnet", 20, yPos + 28);
+    
+    // Fußzeile
+    doc.setFontSize(9);
+    doc.text("passau-ob.meinfamilienfreund.de", 20, 290);
+    
+    doc.save("wahlomat-ergebnis.pdf");
+}
+
+// Hilfsfunktion für deutsche Antworten
+function translateAnswer(answer) {
+    switch(answer) {
+        case 'ja': return '✓ JA';
+        case 'nein': return '✗ NEIN';
+        case 'neutral': return '~ NEUTRAL';
+        default: return answer;
+    }
+}
+</script>
 </body>
 </html>
