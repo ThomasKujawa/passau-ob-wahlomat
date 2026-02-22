@@ -183,7 +183,7 @@ $results = $isPost ? calculate_scores($questions, $candidates, $_POST) : null;
 
     <footer class="footer">
         <p>
-            Dieses Projekt ist privat und inoffiziell. Keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität.
+            Dieses Projekt ist privat und inoffiziell. Keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität. Angaben zum Impressum sind unter <a href="https://github.com/ThomasKujawa/passau-ob-wahlomat/" target="_blank">https://github.com/</a> nachzulesen.
         </p>
     </footer>
 </div>
