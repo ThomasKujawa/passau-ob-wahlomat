@@ -56,7 +56,8 @@ Bitte formuliere Änderungen möglichst klar und nachvollziehbar.
 ***
 
 ## 📄 Lizenz
-Dieses Projekt steht unter der **MIT License** – frei zur Nutzung, Veränderung und Weitergabe, auf eigenes Risiko.
+Dieses Projekt steht unter der **GNU General Public License v3.0**. 
+**Kurz:** Du darfst den Code nutzen, ändern und verbreiten – aber Änderungen müssen ebenfalls unter GPL stehen und der Quellcode muss öffentlich bleiben.
 
 ***
 
