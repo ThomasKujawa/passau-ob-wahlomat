@@ -15,6 +15,7 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         server-dir: /
-        protocol: sftp
-        port: 22
+        protocol: ftp
+        port: 21
         dangerous-clean-slate: false
+        options: '--verbose'
