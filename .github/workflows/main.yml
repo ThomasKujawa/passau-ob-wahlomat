@@ -15,4 +15,7 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         remote_path: /passau-ob.meinfamilienfreund.de/httpdocs/
+        local_path: ./
         port: 22
+        sftp_only: true
+        sftpArgs: '-v'
