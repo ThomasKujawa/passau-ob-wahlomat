@@ -198,9 +198,40 @@ $results = $isPost ? calculate_scores($questions, $candidates, $_POST) : null;
         <button onclick="downloadPDF()">📄 Ergebnis als PDF herunterladen</button>
     </footer>
 </div>
+
 <script>
 // Fragen als JavaScript-Array verfügbar machen
 const questions = <?php echo json_encode($questions); ?>;
+
+// Kandidaten als JavaScript-Array verfügbar machen
+const candidates = <?php echo json_encode($candidates); ?>;
+
+// ✅ PHP-Ergebnisse in JavaScript verfügbar machen (falls POST)
+<?php if ($isPost): ?>
+const phpResults = <?php echo json_encode(array_values($results)); ?>;
+const phpUserAnswers = <?php 
+    $userAnswersForJS = [];
+    foreach ($questions as $q) {
+        if (isset($_POST['answer'][$q['id']]) && $_POST['answer'][$q['id']] !== '') {
+            $userAnswersForJS[$q['id']] = (int)$_POST['answer'][$q['id']];
+        }
+    }
+    echo json_encode($userAnswersForJS); 
+?>;
+const phpWeights = <?php 
+    $weightsForJS = [];
+    foreach ($questions as $q) {
+        if (isset($_POST['answer'][$q['id']]) && $_POST['answer'][$q['id']] !== '') {
+            $weightsForJS[$q['id']] = isset($_POST['weight'][$q['id']]) ? 2 : 1;
+        }
+    }
+    echo json_encode($weightsForJS); 
+?>;
+<?php else: ?>
+const phpResults = null;
+const phpUserAnswers = null;
+const phpWeights = null;
+<?php endif; ?>
 
 function downloadPDF() {
     const { jsPDF } = window.jspdf;
@@ -215,72 +246,204 @@ function downloadPDF() {
     doc.setFontSize(10);
     doc.text("Erstellt: " + new Date().toLocaleDateString('de-DE'), 20, 50);
     
-    // ❌ ECHTE ANTWORTEN aus Formular + Fragen-Array
-    const answers = [];
-    const answerInputs = document.querySelectorAll('input[type="radio"]:checked, select[name^="antwort"]');
+    // ✅ Verwende PHP-Ergebnisse, falls verfügbar (POST), sonst aus Formular
+    let userAnswers = {};
+    let weights = {};
+    let results = [];
     
-    answerInputs.forEach(input => {
-        const questionId = input.name.replace('antwort_', '').replace('antwort', '');
-        const question = questions.find(q => q.id === questionId);
+    if (phpResults !== null && phpUserAnswers !== null) {
+        // ✅ NACH POST: Verwende die berechneten PHP-Ergebnisse
+        userAnswers = phpUserAnswers;
+        weights = phpWeights;
+        results = phpResults;
+    } else {
+        // VOR POST: Aus Formular lesen (sollte nicht vorkommen, aber als Fallback)
+        questions.forEach(q => {
+            const radioInput = document.querySelector(`input[name="answer[${q.id}]"]:checked`);
+            const weightInput = document.querySelector(`input[name="weight[${q.id}]"]`);
+            
+            if (radioInput && radioInput.value !== '') {
+                userAnswers[q.id] = parseInt(radioInput.value);
+                weights[q.id] = (weightInput && weightInput.checked) ? 2 : 1;
+            }
+        });
         
-        if (question) {
-            answers.push({
-                id: question.id,
-                topic: question.topic,
-                text: question.text.substring(0, 80) + '...',
-                answer: input.value // "ja", "nein", "neutral"
+        // Berechnung durchführen (Fallback)
+        Object.keys(candidates).forEach(key => {
+            const cand = candidates[key];
+            let score = 0;
+            let maxScore = 0;
+            
+            Object.keys(userAnswers).forEach(qid => {
+                const userVal = userAnswers[qid];
+                const weight = weights[qid] || 1;
+                
+                if (!cand.positions[qid]) {
+                    return;
+                }
+                
+                const candVal = parseInt(cand.positions[qid]);
+                const diff = Math.abs(userVal - candVal);
+                
+                let points = 0;
+                if (diff === 0) {
+                    points = 2 * weight;
+                } else if (diff === 1) {
+                    points = 1 * weight;
+                } else {
+                    points = 0;
+                }
+                
+                score += points;
+                maxScore += 2 * weight;
             });
-        }
-    });
+            
+            const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+            
+            results.push({
+                name: cand.name,
+                score: score,
+                maxScore: maxScore,
+                percent: percent
+            });
+        });
+        
+        results.sort((a, b) => b.percent - a.percent);
+    }
     
-    // Antworten schreiben
-    let yPos = 75;
+    // ✅ Prüfen ob Antworten vorhanden sind
+    if (Object.keys(userAnswers).length === 0) {
+        alert('Bitte beantworte zuerst die Fragen und werte das Ergebnis aus!');
+        return;
+    }
+    
+    // ✅ ERGEBNISSE auf Seite 1
+    let yPos = 70;
     doc.setFontSize(16);
-    doc.text(`Meine Antworten (${answers.length}/${questions.length} Fragen):`, 20, yPos);
+    doc.text("Deine Übereinstimmungen:", 20, yPos);
     yPos += 15;
     
-    answers.forEach((answer, index) => {
-        // Thema (kursiv)
-        doc.setFont(undefined, 'italic');
-        doc.setFontSize(10);
-        doc.text(answer.topic, 20, yPos);
-        doc.setFont(undefined, 'normal'); // Normal zurück
+    doc.setFontSize(11);
+    results.forEach((result, index) => {
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 25;
+        }
         
-        // Frage + Antwort
+        doc.setFont(undefined, 'bold');
+        doc.text(`${index + 1}. ${result.name}`, 20, yPos);
+        
+        doc.setFontSize(14);
+        doc.text(`${result.percent} %`, 140, yPos);
+        
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text(`(${result.score} / ${result.maxScore} Punkte)`, 165, yPos);
+        
+        yPos += 10;
         doc.setFontSize(11);
-        doc.text(`${index + 1}. ${answer.text}`, 20, yPos + 6);
-        doc.setFontSize(12);
-        doc.text(`   → ${translateAnswer(answer.answer)}`, 20, yPos + 14);
+    });
+    
+    // ✅ TOP-EMPFEHLUNG hervorheben
+    yPos += 10;
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 25;
+    }
+    
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text("🎯 Höchste Übereinstimmung:", 20, yPos);
+    
+    doc.setFontSize(20);
+    doc.setTextColor(0, 100, 0);
+    doc.text(results[0].name, 20, yPos + 15);
+    doc.setTextColor(0, 0, 0);
+    
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'normal');
+    doc.text(`mit ${results[0].percent}% Übereinstimmung`, 20, yPos + 28);
+    
+    // ✅ NEUE SEITE: Deine Antworten
+    doc.addPage();
+    yPos = 25;
+    
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text("Deine Antworten", 20, yPos);
+    yPos += 15;
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Du hast ${Object.keys(userAnswers).length} von ${questions.length} Fragen beantwortet.`, 20, yPos);
+    yPos += 15;
+    
+    let currentTopic = null;
+    questions.forEach((q) => {
+        if (!userAnswers[q.id] && userAnswers[q.id] !== 0) {
+            return;
+        }
         
-        yPos += 28;
-        
-        // Neue Seite?
         if (yPos > 260) {
             doc.addPage();
             yPos = 25;
         }
+        
+        if (q.topic !== currentTopic) {
+            currentTopic = q.topic;
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(11);
+            doc.text(q.topic, 20, yPos);
+            yPos += 8;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(9);
+        }
+        
+        const answerText = translateAnswer(userAnswers[q.id]);
+        const isImportant = weights[q.id] === 2;
+        
+        const questionText = q.text.length > 70 ? q.text.substring(0, 67) + '...' : q.text;
+        doc.text(`${q.id}: ${questionText}`, 20, yPos);
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(answerText + (isImportant ? ' ⭐' : ''), 190, yPos, { align: 'right' });
+        doc.setFont(undefined, 'normal');
+        
+        yPos += 7;
     });
     
-    // Empfehlung (Platzhalter - später echte Logik)
-    doc.setFontSize(18);
-    doc.text("🎯 Empfohlener Kandidat:", 20, yPos + 10);
-    doc.setFontSize(20);
-    doc.text("Noch nicht berechnet", 20, yPos + 28);
+    // ✅ DISCLAIMER + FUßZEILE
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 25;
+    }
     
-    // Fußzeile
+    yPos += 15;
     doc.setFontSize(9);
-    doc.text("passau-ob.meinfamilienfreund.de", 20, 290);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Hinweis: Dies ist ein privates, inoffizielles Informationsangebot.", 20, yPos);
+    doc.text("Die Positionen beruhen auf einer eigenen Einschätzung und können fehlerhaft sein.", 20, yPos + 6);
+    doc.text("Bitte informiere dich zusätzlich in den Programmen und Auftritten der Kandidierenden.", 20, yPos + 12);
     
-    doc.save("wahlomat-ergebnis.pdf");
+    // Fußzeile auf jeder Seite
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text("passau-ob-wahlomat (privates Projekt)", 20, 290);
+        doc.text(`Seite ${i} von ${pageCount}`, 190, 290, { align: 'right' });
+    }
+    
+    doc.save("passau-ob-wahlomat-ergebnis.pdf");
 }
 
-// Hilfsfunktion für deutsche Antworten
-function translateAnswer(answer) {
-    switch(answer) {
-        case 'ja': return '✓ JA';
-        case 'nein': return '✗ NEIN';
-        case 'neutral': return '~ NEUTRAL';
-        default: return answer;
+function translateAnswer(value) {
+    switch(value) {
+        case 1: return '✓ Stimme zu';
+        case 0: return '~ Neutral';
+        case -1: return '✗ Stimme nicht zu';
+        default: return 'Übersprungen';
     }
 }
 </script>
