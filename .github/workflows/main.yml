@@ -14,7 +14,7 @@ jobs:
         server: hosting226951.ae9c0.netcup.net
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        remote_path: /passau-ob.meinfamilienfreund.de/httpdocs/
+        remote_path: /
         local_path: ./
         port: 22
         sftp_only: true
