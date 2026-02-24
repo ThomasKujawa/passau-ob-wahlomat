@@ -187,6 +187,14 @@ $results = $isPost ? calculate_scores($questions, $candidates, $_POST) : null;
         <p>
             Dieses Projekt ist privat und inoffiziell. Keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität. Angaben zum Impressum sind unter <a href="https://github.com/ThomasKujawa/passau-ob-wahlomat/" target="_blank">https://github.com/</a> nachzulesen.
         </p>
+        <?php
+            $version = file_exists(__DIR__ . '/version.txt') 
+                ? 'v' . trim(file_get_contents(__DIR__ . '/version.txt')) 
+                : 'dev';
+            ?>
+            <p class="version" style="font-size: 0.85em; color: #666; margin-top: 10px;">
+                Version: <?= htmlspecialchars($version) ?>
+            </p>
         <button onclick="downloadPDF()">📄 Ergebnis als PDF herunterladen</button>
     </footer>
 </div>

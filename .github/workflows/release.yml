@@ -1,0 +1,100 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'version.txt'
+      - '.github/**'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          # Letzten Tag holen oder 0.0.0 wenn keiner existiert
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          
+          # Version ohne 'v' Prefix
+          VERSION=${LATEST_TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Calculate new version
+        id: new_version
+        run: |
+          VERSION=${{ steps.get_tag.outputs.version }}
+          
+          # Patch-Version erhöhen (z.B. 1.0.0 -> 1.0.1)
+          IFS='.' read -ra PARTS <<< "$VERSION"
+          MAJOR=${PARTS[0]:-0}
+          MINOR=${PARTS[1]:-0}
+          PATCH=${PARTS[2]:-0}
+          
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          NEW_TAG="v$NEW_VERSION"
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "📦 Neue Version: $NEW_TAG"
+      
+      - name: Update version.txt
+        run: |
+          echo "${{ steps.new_version.outputs.new_version }}" > version.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt
+          git commit -m "chore: bump version to ${{ steps.new_version.outputs.new_version }}"
+          git push
+      
+      - name: Create Git Tag
+        run: |
+          git tag ${{ steps.new_version.outputs.new_tag }}
+          git push origin ${{ steps.new_version.outputs.new_tag }}
+      
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=${{ steps.get_tag.outputs.latest_tag }}
+          NEW_TAG=${{ steps.new_version.outputs.new_tag }}
+          
+          # Commits seit letztem Tag sammeln
+          if [ "$PREVIOUS_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Multiline-String für GitHub Output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.new_version.outputs.new_tag }}
+          release_name: Release ${{ steps.new_version.outputs.new_tag }}
+          body: |
+            ## Änderungen in dieser Version
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            **Vollständiges Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get_tag.outputs.latest_tag }}...${{ steps.new_version.outputs.new_tag }}
+          draft: false
+          prerelease: false
