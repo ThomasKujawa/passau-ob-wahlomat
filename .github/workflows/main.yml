@@ -8,13 +8,11 @@ jobs:
     - name: 🚚 Get latest code
       uses: actions/checkout@v4
     
-    - name: 📂 Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+    - name: 📂 Sync files via SFTP
+      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
       with:
         server: hosting226951.ae9c0.netcup.net
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: /passau-ob.meinfamilienfreund.de/httpdocs/
-        protocol: ftp
-        port: 21
-        security: loose
+        remote_path: /passau-ob.meinfamilienfreund.de/httpdocs/
+        port: 22
