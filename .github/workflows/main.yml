@@ -1,0 +1,23 @@
+name: FTP Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy over FTP
+        uses: SamKirkland/FTP-Deploy-Action@3.2.0
+        with:
+          server: hosting226951.ae9c0.netcup.net
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /passau-ob.meinfamilienfreund.de/httpdocs
+          local-dir: .https://github.com/ThomasKujawa/passau-ob-wahlomat
