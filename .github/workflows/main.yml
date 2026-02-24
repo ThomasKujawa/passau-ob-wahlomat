@@ -14,8 +14,6 @@ jobs:
         server: hosting226951.ae9c0.netcup.net
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: /
         protocol: ftp
         port: 21
         dangerous-clean-slate: false
-        options: '--verbose'
